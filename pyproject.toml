@@ -1,0 +1,63 @@
+[project]
+name = "garmin-mcp"
+version = "0.1.0"
+description = "Local-only MCP server that lets AI assistants read your Garmin Connect data and push structured workouts to your watch. Your password is never stored."
+readme = "README.md"
+license = "MIT"
+license-files = ["LICENSE"]
+authors = [
+    { name = "Advait Gogte" }
+]
+requires-python = ">=3.12"
+keywords = ["mcp", "model-context-protocol", "garmin", "garmin-connect", "ai-agents", "fitness", "running", "cycling"]
+classifiers = [
+    "Development Status :: 4 - Beta",
+    "Intended Audience :: Developers",
+    "Operating System :: MacOS",
+    "Operating System :: POSIX :: Linux",
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.12",
+    "Programming Language :: Python :: 3.13",
+    "Programming Language :: Python :: 3.14",
+    "Topic :: Scientific/Engineering :: Artificial Intelligence",
+    "Typing :: Typed",
+]
+dependencies = [
+    "garminconnect[workout]>=0.3.16",
+    "mcp>=2.2.0",
+]
+
+[project.urls]
+Repository = "https://github.com/agogte/garmin_mcp"
+Issues = "https://github.com/agogte/garmin_mcp/issues"
+Changelog = "https://github.com/agogte/garmin_mcp/blob/master/CHANGELOG.md"
+
+[project.scripts]
+garmin-mcp = "garmin_mcp.server:main"
+garmin-mcp-login = "garmin_mcp.auth:login_cli"
+
+[dependency-groups]
+dev = [
+    "pytest>=8",
+    "ruff>=0.8",
+    "pyright>=1.1.390",
+]
+
+[build-system]
+requires = ["uv_build>=0.11.31,<0.12.0"]
+build-backend = "uv_build"
+
+[tool.ruff]
+line-length = 110
+target-version = "py312"
+
+[tool.ruff.lint]
+select = ["E", "F", "W", "I", "UP", "B", "SIM", "RUF"]
+
+[tool.pyright]
+include = ["src", "tests"]
+pythonVersion = "3.12"
+typeCheckingMode = "standard"
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]

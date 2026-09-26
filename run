@@ -1,0 +1,58 @@
+#!/usr/bin/env bash
+# garmin-mcp launcher.
+#
+#   ./run          Interactive: sync deps, log in to Garmin if needed, install the
+#                  server to ~/.local/bin, register it with your MCP clients, then
+#                  start it on stdio.
+#   ./run --help   Show this help.
+#
+# When an MCP client launches this script non-interactively, it just starts the
+# server. Everything runs on this machine. Your Garmin password is only typed
+# into the login prompt, sent to sso.garmin.com, and never saved.
+set -euo pipefail
+
+cd "$(dirname "${BASH_SOURCE[0]}")"
+
+if [[ "${1:-}" == "-h" || "${1:-}" == "--help" ]]; then
+  sed -n '2,11p' "$0" | sed 's/^# \{0,1\}//'
+  exit 0
+fi
+
+# GUI apps launch child processes with a minimal PATH.
+export PATH="$PATH:/opt/homebrew/bin:/usr/local/bin:$HOME/.local/bin:$HOME/.cargo/bin"
+
+if ! command -v uv >/dev/null 2>&1; then
+  echo "uv is required: https://docs.astral.sh/uv/" >&2
+  exit 1
+fi
+
+# Launched by an MCP client: stdout is the protocol channel, so no chatter.
+if [[ ! -t 0 ]]; then
+  exec uv run --quiet garmin-mcp
+fi
+
+echo "==> Syncing dependencies"
+uv sync --quiet
+
+# macOS privacy protection (TCC) stops desktop apps from executing files under
+# ~/Documents, so MCP clients run an installed copy from ~/.local/bin instead.
+echo "==> Installing garmin-mcp to $(uv tool dir --bin)"
+uv tool install --quiet --reinstall .
+SERVER_BIN="$(uv tool dir --bin)/garmin-mcp"
+
+echo "==> Checking Garmin session"
+if ! uv run --quiet garmin-mcp-login --check; then
+  echo "==> No valid Garmin session; starting one-time login (password is not stored)"
+  uv run --quiet garmin-mcp-login
+fi
+
+# Optional machine-specific client registration (git-ignored).
+if [[ -x ./run.local ]]; then
+  ./run.local "$SERVER_BIN"
+else
+  echo "==> Point your MCP client at: $SERVER_BIN  (stdio, no arguments, no env vars)"
+fi
+
+echo "==> Starting Garmin MCP server on stdio (Ctrl-C to stop)."
+echo "    MCP clients start their own copy on demand, so you don't need to keep this running."
+exec "$SERVER_BIN"
