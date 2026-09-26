@@ -1,0 +1,25 @@
+name: Bug report
+description: Something isn't working
+labels: [bug]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        **Never paste your Garmin password, tokens, or the contents of `~/.garmin_mcp/` into an issue.**
+  - type: textarea
+    id: what-happened
+    attributes:
+      label: What happened?
+      description: Include the tool you called and the arguments (redact anything personal).
+    validations:
+      required: true
+  - type: textarea
+    id: expected
+    attributes:
+      label: What did you expect?
+  - type: input
+    id: versions
+    attributes:
+      label: Versions
+      description: >-
+        OS, Python version, and the output of `uv pip list | grep -Ei "garminconnect|^mcp "`
