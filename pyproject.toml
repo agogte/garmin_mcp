@@ -24,7 +24,7 @@ classifiers = [
 ]
 dependencies = [
     "garminconnect[workout]>=0.3.16",
-    "mcp>=2.2.0",
+    "mcp>=2.3.0",
 ]
 
 [project.urls]
