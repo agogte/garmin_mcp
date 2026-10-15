@@ -12,6 +12,8 @@ A local-first [Model Context Protocol](https://modelcontextprotocol.io) server t
 ![MCP](https://img.shields.io/badge/MCP-server-8A2BE2)
 ![Typed](https://img.shields.io/badge/typing-pyright-informational)
 
+**English** · [Français](README.fr.md)
+
 </div>
 
 <!-- Demo screenshot: save one to docs/images/demo.png and uncomment.
