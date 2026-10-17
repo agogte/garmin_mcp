@@ -2,6 +2,15 @@
 
 All notable changes to this project are documented here. The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and the project uses [Semantic Versioning](https://semver.org/).
 
+## [Unreleased]
+
+### Added
+- `list_pacepro_plans` and `get_pacepro_plan`: read-only access to PacePro race-pacing plans, including per-split target pace and cumulative time. GPS points are only included on request.
+- `./run` keeps the server in the background and exits cleanly on `c` or Ctrl-C.
+
+### Fixed
+- CI: the gitleaks secret scan now has `pull-requests: read`, so it works on pull requests.
+
 ## [0.1.0] - 2026-10-15
 
 ### Added

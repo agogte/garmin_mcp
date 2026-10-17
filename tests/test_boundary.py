@@ -29,6 +29,8 @@ async def test_no_tool_output_contains_tokens(mcp_client, fake_garmin):
         "get_training_status": {"date": "2026-10-01"},
         "list_workouts": {},
         "get_workout": {"workout_id": 9},
+        "list_pacepro_plans": {},
+        "get_pacepro_plan": {"plan_id": 42, "include_points": True},
     }
     for name, args in calls.items():
         result = await mcp_client.call_tool(name, args)

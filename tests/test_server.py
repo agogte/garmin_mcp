@@ -13,6 +13,8 @@ EXPECTED_TOOLS = {
     "list_workouts",
     "get_workout",
     "delete_workout",
+    "list_pacepro_plans",
+    "get_pacepro_plan",
 }
 
 
@@ -114,3 +116,32 @@ async def test_workout_library(mcp_client, fake_garmin):
     assert payload(await mcp_client.call_tool("get_workout", {"workout_id": 9}))["workoutId"] == 9
     assert payload(await mcp_client.call_tool("delete_workout", {"workout_id": 9}))["deleted"] is True
     assert fake_garmin.deleted == [9]
+
+
+async def test_list_pacepro_plans(mcp_client, fake_garmin):
+    (plan,) = payload(await mcp_client.call_tool("list_pacepro_plans", {}))
+    assert plan["plan_id"] == 42
+    assert plan["course_id"] is None  # Garmin uses 0 for "no course"
+    assert plan["goal_time_s"] == 1495
+    assert plan["goal_pace_s_per_km"] == 299.0
+    assert plan["goal_pace_s_per_mile"] == round(1609.344 / (5000 / 1495), 1)
+
+
+async def test_get_pacepro_plan_splits_without_points(mcp_client, fake_garmin):
+    plan = payload(await mcp_client.call_tool("get_pacepro_plan", {"plan_id": 42}))
+    assert plan["name"] == "sub 25 5k"
+    (split,) = plan["splits"]
+    assert split["split"] == 1
+    assert split["target_pace_s_per_mile"] == 489.6
+    assert "start_point" not in split
+
+
+async def test_get_pacepro_plan_with_points(mcp_client, fake_garmin):
+    plan = payload(await mcp_client.call_tool("get_pacepro_plan", {"plan_id": 42, "include_points": True}))
+    assert plan["splits"][0]["start_point"] == {"latitude": 1.0, "longitude": 2.0}
+
+
+async def test_unknown_pacepro_plan_is_readable_error(mcp_client, fake_garmin):
+    result = await mcp_client.call_tool("get_pacepro_plan", {"plan_id": 7})
+    assert result.is_error
+    assert "Not found" in result.content[0].text
