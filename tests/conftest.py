@@ -86,6 +86,33 @@ class FakeGarmin:
     def get_workout_by_id(self, workout_id: int) -> dict[str, Any]:
         return {"workoutId": workout_id, "workoutName": "5x1k"}
 
+    def connectapi(self, path: str, **kwargs: Any) -> Any:
+        summary = {
+            "paceBandPk": 42,
+            "name": "sub 25 5k",
+            "courseId": 0,
+            "totalDistance": 5000.0,
+            "goalTime": 1495,
+            "goalSpeed": 5000.0 / 1495,
+            "splitType": "DISTANCE_MILE",
+            "distanceUnit": "MILE",
+            "pacingStrategy": 0.4,
+            "uphillEffort": 0.0,
+        }
+        if path == "/course-service/pacebands/summaries":
+            return [summary]
+        if path == "/course-service/pacebands/42":
+            split = {
+                "splitDistance": 1609.344,
+                "cumulativeDistanceFromStart": 1609.344,
+                "cumulativeTimeFromStart": 489.6,
+                "splitAvgSpeed": 1609.344 / 489.6,
+                "startPoint": {"latitude": 1.0, "longitude": 2.0},
+                "endPoint": {"latitude": 1.1, "longitude": 2.1},
+            }
+            return {"paceBandPk": 42, "paceBandSummary": summary, "paceBandSplits": [split]}
+        raise GarminConnectNotFoundError(f"unexpected path {path}")
+
     # --- writes
     def upload_workout(self, payload: dict[str, Any]) -> dict[str, Any]:
         self.uploaded.append(payload)

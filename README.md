@@ -98,6 +98,7 @@ Restart your client and ask it something like *"What was my sleep score and rest
 | `create_workout` | Builds a structured workout (run, bike, swim, walk, hike) and saves it to your Garmin library. |
 | `schedule_workout` | Puts a workout on your Garmin calendar, from where it syncs to the watch. |
 | `list_workouts` / `get_workout` / `delete_workout` | Manage your workout library. |
+| `list_pacepro_plans` / `get_pacepro_plan` | Your PacePro race-pacing plans: goal time and pace, pacing strategy, and per-split targets (GPS points optional). Read-only. |
 
 Sections that fail independently, such as power zones for a run without a power meter, are reported in an `errors` field instead of failing the whole call.
 
@@ -139,7 +140,7 @@ uv run garmin-mcp-login --logout   # delete local tokens
 
 ```bash
 uv sync
-uv run pytest          # 39 tests, no network: fake Garmin client + in-memory MCP client
+uv run pytest          # 43 tests, no network: fake Garmin client + in-memory MCP client
 uv run ruff check . && uv run ruff format --check .
 uv run pyright
 ```

@@ -220,6 +220,70 @@ def get_training_status(date: str | None = None) -> dict[str, Any]:
     }
 
 
+METERS_PER_MILE = 1609.344
+
+
+def _pacepro_summary(p: dict[str, Any]) -> dict[str, Any]:
+    goal_speed = p.get("goalSpeed")
+    return {
+        "plan_id": p.get("paceBandPk"),
+        "name": p.get("name"),
+        "course_id": p.get("courseId") or None,
+        "distance_m": p.get("totalDistance"),
+        "goal_time_s": p.get("goalTime"),
+        "goal_pace_s_per_km": _pace_s_per_km(goal_speed),
+        "goal_pace_s_per_mile": round(METERS_PER_MILE / goal_speed, 1) if goal_speed else None,
+        "split_type": p.get("splitType"),
+        "distance_unit": p.get("distanceUnit"),
+        "pacing_strategy": p.get("pacingStrategy"),
+        "uphill_effort": p.get("uphillEffort"),
+        "manual_pace_edit": p.get("manualPaceEdit"),
+        "event_date": p.get("eventDate"),
+        "created": p.get("createdDate"),
+        "updated": p.get("lastUpdatedDate"),
+    }
+
+
+@mcp.tool()
+def list_pacepro_plans() -> list[dict[str, Any]]:
+    """List the user's PacePro pacing plans (goal time, distance, pacing strategy).
+
+    pacing_strategy and uphill_effort are Garmin's raw slider values.
+    """
+    client = _call(get_client)
+    plans = _call(lambda: client.connectapi("/course-service/pacebands/summaries"))
+    if not isinstance(plans, list):
+        return []
+    return [_pacepro_summary(p) for p in plans]
+
+
+@mcp.tool()
+def get_pacepro_plan(plan_id: int, include_points: bool = False) -> dict[str, Any]:
+    """One PacePro plan with its per-split targets (distance, cumulative time, target pace).
+
+    include_points adds each split's start/end GPS coordinates.
+    """
+    client = _call(get_client)
+    data = _call(lambda: client.connectapi(f"/course-service/pacebands/{int(plan_id)}")) or {}
+    splits = []
+    for i, sp in enumerate(data.get("paceBandSplits") or [], start=1):
+        speed = sp.get("splitAvgSpeed")
+        split = {
+            "split": i,
+            "distance_m": sp.get("splitDistance"),
+            "cumulative_distance_m": sp.get("cumulativeDistanceFromStart"),
+            "cumulative_time_s": sp.get("cumulativeTimeFromStart"),
+            "target_speed_mps": speed,
+            "target_pace_s_per_km": _pace_s_per_km(speed),
+            "target_pace_s_per_mile": round(METERS_PER_MILE / speed, 1) if speed else None,
+        }
+        if include_points:
+            split["start_point"] = sp.get("startPoint")
+            split["end_point"] = sp.get("endPoint")
+        splits.append(split)
+    return {**_pacepro_summary(data.get("paceBandSummary") or {}), "splits": splits}
+
+
 # --------------------------------------------------------------- write tools
 
 
