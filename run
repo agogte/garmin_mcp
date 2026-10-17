@@ -3,7 +3,7 @@
 #
 #   ./run          Interactive: sync deps, log in to Garmin if needed, install the
 #                  server to ~/.local/bin, register it with your MCP clients, then
-#                  start it on stdio.
+#                  run it until you press c (or Ctrl-C).
 #   ./run --help   Show this help.
 #
 # When an MCP client launches this script non-interactively, it just starts the
@@ -53,6 +53,38 @@ else
   echo "==> Point your MCP client at: $SERVER_BIN  (stdio, no arguments, no env vars)"
 fi
 
-echo "==> Starting Garmin MCP server on stdio (Ctrl-C to stop)."
+# Run the server in the background, fed by a FIFO we hold open so it never sees
+# EOF, and keep the terminal free for the exit key.
+fifo_dir="$(mktemp -d)"
+mkfifo "$fifo_dir/stdin"
+exec 3<>"$fifo_dir/stdin"
+"$SERVER_BIN" <&3 >/dev/null &
+server_pid=$!
+
+stopped=0
+shutdown() {
+  [[ $stopped -eq 1 ]] && return
+  stopped=1
+  echo
+  echo "==> Stopping Garmin MCP server"
+  kill "$server_pid" 2>/dev/null || true
+  wait "$server_pid" 2>/dev/null || true
+  exec 3>&-
+  rm -rf "$fifo_dir"
+  echo "==> Stopped. MCP clients still start their own copy on demand."
+}
+trap 'shutdown; exit 0' INT TERM
+trap shutdown EXIT
+
+echo "==> Garmin MCP server running (pid $server_pid)."
 echo "    MCP clients start their own copy on demand, so you don't need to keep this running."
-exec "$SERVER_BIN"
+echo "    Press c to exit."
+
+while kill -0 "$server_pid" 2>/dev/null; do
+  if read -rsn1 -t 1 key && [[ "$key" == [cC] ]]; then
+    exit 0
+  fi
+done
+
+echo "==> Server exited unexpectedly." >&2
+exit 1
