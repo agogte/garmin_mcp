@@ -287,6 +287,110 @@ def get_pacepro_plan(plan_id: int, include_points: bool = False) -> dict[str, An
 # --------------------------------------------------------------- write tools
 
 
+def build_pacepro_splits(
+    distance_m: float, goal_time_s: float, split_m: float, split_change_pct: float
+) -> list[dict[str, Any]]:
+    """Split a race into fixed-length splits whose times sum exactly to goal_time_s.
+
+    split_change_pct is the speed change from the first split to the last:
+    positive = negative split (finish faster), negative = positive split, 0 = even.
+    Speed changes linearly across splits.
+    """
+    if distance_m <= 0 or goal_time_s <= 0:
+        raise ValueError("distance_m and goal_time_s must be positive")
+    lengths: list[float] = []
+    remaining = distance_m
+    while remaining > 1e-6:
+        lengths.append(min(split_m, remaining))
+        remaining -= lengths[-1]
+    # Like Garmin, fold a short leftover (< half a split) into the final split.
+    if len(lengths) > 1 and lengths[-1] < split_m / 2:
+        leftover = lengths.pop()
+        lengths[-1] += leftover
+    n = len(lengths)
+    ramp = split_change_pct / 100.0
+    # relative speed for split i, linear from (1 - ramp/2) to (1 + ramp/2)
+    rel = [1.0 + ramp * ((i / (n - 1)) - 0.5) if n > 1 else 1.0 for i in range(n)]
+    if min(rel) <= 0:
+        raise ValueError("split_change_pct is too extreme")
+    # choose base speed so that total time == goal_time_s
+    base = sum(length / r for length, r in zip(lengths, rel, strict=True)) / goal_time_s
+    splits: list[dict[str, Any]] = []
+    cum_d = cum_t = 0.0
+    null_point = {"elevation": None, "latitude": None, "longitude": None}
+    for length, r in zip(lengths, rel, strict=True):
+        speed = base * r
+        cum_d += length
+        cum_t += length / speed
+        splits.append(
+            {
+                "cumulativeDistanceFromStart": round(cum_d, 3),
+                "splitAvgSpeed": speed,
+                "cumulativeTimeFromStart": round(cum_t, 3),
+                "splitDistance": length,
+                "startPoint": dict(null_point),
+                "endPoint": dict(null_point),
+            }
+        )
+    return splits
+
+
+@mcp.tool()
+def create_pacepro_plan(
+    name: str,
+    distance_m: float,
+    goal_time_s: float,
+    split_unit: Literal["mile", "km"] = "mile",
+    split_change_pct: float = 0.0,
+) -> dict[str, Any]:
+    """Create a new PacePro pacing plan (not tied to a course) in Garmin Connect.
+
+    distance_m: race distance (5K = 5000, 10K = 10000, half = 21097.5, marathon = 42195).
+    goal_time_s: finish time in seconds. split_unit: one split per mile or per km.
+    split_change_pct: speed change from first to last split; e.g. 4 = gradual negative
+    split finishing ~4% faster, -4 = positive split, 0 = even pacing.
+    Creates a new plan only; it never modifies existing ones. Returns the new plan.
+    """
+    split_m = METERS_PER_MILE if split_unit == "mile" else 1000.0
+    splits = _call(lambda: build_pacepro_splits(distance_m, goal_time_s, split_m, split_change_pct))
+    body = {
+        "paceBandSplits": splits,
+        "paceBandSummary": {
+            "courseId": None,
+            "goalTime": goal_time_s,
+            "goalSpeed": distance_m / goal_time_s,
+            "name": name,
+            "splitType": "DISTANCE_MILE" if split_unit == "mile" else "DISTANCE_KILOMETER",
+            "totalDistance": distance_m,
+            "uphillEffort": 0,
+            "pacingStrategy": 0,
+            "manualPaceEdit": True,
+            "distanceUnit": "MILE" if split_unit == "mile" else "KILOMETER",
+            "elevationSegmentationTolerance": 50,
+            "paceFactor": 2,
+            "elevationSegmentMinLength": 1700,
+        },
+    }
+    client = _call(get_client)
+    created = _call(
+        lambda: client.client.post("connectapi", "/course-service/pacebands", json=body, api=True)
+    )
+    plan_id = (created or {}).get("paceBandPk") or ((created or {}).get("paceBandSummary") or {}).get(
+        "paceBandPk"
+    )
+    if not plan_id:
+        return {"status": "created", "garmin_response": created}
+    return {"status": "created", **get_pacepro_plan(int(plan_id))}
+
+
+@mcp.tool()
+def delete_pacepro_plan(plan_id: int) -> dict[str, Any]:
+    """Permanently delete a PacePro plan from Garmin Connect. Confirm with the user first."""
+    client = _call(get_client)
+    _call(lambda: client.client.delete("connectapi", f"/course-service/pacebands/{int(plan_id)}", api=True))
+    return {"deleted": True, "plan_id": plan_id}
+
+
 @mcp.tool()
 def create_workout(
     sport: Sport, name: str, steps: list[Step], description: str | None = None

@@ -21,6 +21,18 @@ class FakeAuthClient:
     di_token = FAKE_TOKEN
     di_refresh_token = FAKE_TOKEN + "-refresh"
 
+    def __init__(self) -> None:
+        self.posted: list[tuple[str, Any]] = []
+        self.deleted: list[str] = []
+
+    def post(self, domain: str, path: str, json: Any = None, api: bool = False) -> Any:
+        self.posted.append((path, json))
+        return {"paceBandPk": 42}
+
+    def delete(self, domain: str, path: str, api: bool = False) -> Any:
+        self.deleted.append(path)
+        return {}
+
 
 class FakeGarmin:
     """Records write calls and returns canned Garmin-shaped payloads."""

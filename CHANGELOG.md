@@ -5,7 +5,9 @@ All notable changes to this project are documented here. The format follows [Kee
 ## [Unreleased]
 
 ### Added
-- `list_pacepro_plans` and `get_pacepro_plan`: read-only access to PacePro race-pacing plans, including per-split target pace and cumulative time. GPS points are only included on request.
+- `list_pacepro_plans` and `get_pacepro_plan`: read PacePro race-pacing plans, including per-split target pace and cumulative time. GPS points are only included on request.
+- `create_pacepro_plan`: create a course-free PacePro plan from a distance and goal time, with mile or km splits that are even or follow a gradual negative/positive split. Short leftover distance is folded into the final split, as Garmin does.
+- `delete_pacepro_plan`.
 - `./run` keeps the server in the background and exits cleanly on `c` or Ctrl-C.
 
 ### Fixed

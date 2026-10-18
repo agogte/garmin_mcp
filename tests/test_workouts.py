@@ -142,3 +142,23 @@ def test_invalid_steps_are_rejected(spec):
 def test_empty_workout_is_rejected():
     with pytest.raises(ValueError):
         build_workout("running", "empty", [])
+
+
+def test_pacepro_splits_fold_short_remainder_and_hit_goal():
+    from garmin_mcp.server import METERS_PER_MILE, build_pacepro_splits
+
+    splits = build_pacepro_splits(5000, 1490, METERS_PER_MILE, 4)
+    assert [round(s["splitDistance"]) for s in splits] == [1609, 1609, 1781]
+    assert splits[-1]["cumulativeTimeFromStart"] == pytest.approx(1490)
+    assert splits[-1]["cumulativeDistanceFromStart"] == pytest.approx(5000)
+    speeds = [s["splitAvgSpeed"] for s in splits]
+    assert speeds == sorted(speeds)  # positive change = negative split
+
+
+def test_pacepro_splits_reject_bad_input():
+    from garmin_mcp.server import build_pacepro_splits
+
+    with pytest.raises(ValueError):
+        build_pacepro_splits(0, 1490, 1000, 0)
+    with pytest.raises(ValueError):
+        build_pacepro_splits(5000, 1490, 1000, 400)

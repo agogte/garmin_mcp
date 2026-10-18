@@ -95,7 +95,9 @@ Redémarrez votre client et demandez-lui par exemple : *« Quels étaient mon sc
 | `create_workout` | Crée une séance structurée (course, vélo, natation, marche, randonnée) et l'enregistre dans votre bibliothèque Garmin. |
 | `schedule_workout` | Place une séance dans votre calendrier Garmin, d'où elle se synchronise sur la montre. |
 | `list_workouts` / `get_workout` / `delete_workout` | Gèrent votre bibliothèque de séances. |
-| `list_pacepro_plans` / `get_pacepro_plan` | Vos plans d'allure PacePro : temps et allure cibles, stratégie d'allure et objectifs par fraction (points GPS en option). Lecture seule. |
+| `list_pacepro_plans` / `get_pacepro_plan` | Vos plans d'allure PacePro : temps et allure cibles, stratégie d'allure et objectifs par fraction (points GPS en option). |
+| `create_pacepro_plan` | Crée un nouveau plan PacePro à partir d'une distance et d'un temps cible, avec des fractions au mile ou au km, régulières ou progressivement plus rapides/lentes (`split_change_pct`). La somme des fractions correspond toujours au temps cible. Ne modifie jamais les plans existants. |
+| `delete_pacepro_plan` | Supprime un plan PacePro. |
 
 Les sections qui échouent de façon indépendante, comme les zones de puissance d'une course sans capteur de puissance, sont signalées dans un champ `errors` au lieu de faire échouer tout l'appel.
 
@@ -137,7 +139,7 @@ uv run garmin-mcp-login --logout   # supprime les jetons locaux
 
 ```bash
 uv sync
-uv run pytest          # 43 tests, sans réseau : faux client Garmin + client MCP en mémoire
+uv run pytest          # 47 tests, sans réseau : faux client Garmin + client MCP en mémoire
 uv run ruff check . && uv run ruff format --check .
 uv run pyright
 ```

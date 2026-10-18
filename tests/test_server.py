@@ -15,6 +15,8 @@ EXPECTED_TOOLS = {
     "delete_workout",
     "list_pacepro_plans",
     "get_pacepro_plan",
+    "create_pacepro_plan",
+    "delete_pacepro_plan",
 }
 
 
@@ -145,3 +147,30 @@ async def test_unknown_pacepro_plan_is_readable_error(mcp_client, fake_garmin):
     result = await mcp_client.call_tool("get_pacepro_plan", {"plan_id": 7})
     assert result.is_error
     assert "Not found" in result.content[0].text
+
+
+async def test_create_pacepro_plan_posts_even_splits(mcp_client, fake_garmin):
+    result = payload(
+        await mcp_client.call_tool(
+            "create_pacepro_plan",
+            {"name": "Goal 5k", "distance_m": 5000, "goal_time_s": 1500, "split_unit": "km"},
+        )
+    )
+    assert result["status"] == "created"
+    assert result["plan_id"] == 42
+    ((path, body),) = fake_garmin.client.posted
+    assert path == "/course-service/pacebands"
+    summary = body["paceBandSummary"]
+    assert summary["name"] == "Goal 5k"
+    assert summary["splitType"] == "DISTANCE_KILOMETER"
+    assert summary["manualPaceEdit"] is True
+    splits = body["paceBandSplits"]
+    assert [s["splitDistance"] for s in splits] == [1000.0] * 5
+    assert {round(s["splitAvgSpeed"], 9) for s in splits} == {round(5000 / 1500, 9)}
+    assert splits[-1]["cumulativeTimeFromStart"] == 1500.0
+
+
+async def test_delete_pacepro_plan(mcp_client, fake_garmin):
+    result = payload(await mcp_client.call_tool("delete_pacepro_plan", {"plan_id": 42}))
+    assert result == {"deleted": True, "plan_id": 42}
+    assert fake_garmin.client.deleted == ["/course-service/pacebands/42"]
