@@ -23,7 +23,7 @@ classifiers = [
     "Typing :: Typed",
 ]
 dependencies = [
-    "garminconnect[workout]>=0.3.16",
+    "garminconnect[workout]>=0.3.19",
     "mcp>=2.2.0",
 ]
 
