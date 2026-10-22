@@ -39,7 +39,7 @@ garmin-mcp-login = "garmin_mcp.auth:login_cli"
 [dependency-groups]
 dev = [
     "pytest>=8",
-    "ruff>=0.8",
+    "ruff>=0.17.1",
     "pyright>=1.1.390",
 ]
 
